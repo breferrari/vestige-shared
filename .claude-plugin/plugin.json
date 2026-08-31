@@ -12,7 +12,6 @@
     "team",
     "sync"
   ],
-  "hooks": "./hooks/hooks.json",
   "commands": [
     "./commands/approve-memories.md",
     "./commands/memory-doctor.md"
