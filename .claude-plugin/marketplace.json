@@ -5,8 +5,10 @@
   },
   "plugins": [
     {
+      "name": "vestige-shared",
       "source": ".",
       "description": "Team-shared memories for Vestige. Requires the vestige plugin."
     }
-  ]
+  ],
+  "description": "Team-shared memories for Vestige, as an optional add-on."
 }
