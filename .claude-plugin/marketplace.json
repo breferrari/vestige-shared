@@ -1,0 +1,12 @@
+{
+  "name": "vestige-shared",
+  "owner": {
+    "name": "Brenno Ferrari"
+  },
+  "plugins": [
+    {
+      "source": ".",
+      "description": "Team-shared memories for Vestige. Requires the vestige plugin."
+    }
+  ]
+}

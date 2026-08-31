@@ -1,0 +1,20 @@
+{
+  "name": "vestige-shared",
+  "displayName": "Vestige \u2014 Shared Memories",
+  "version": "0.1.0",
+  "description": "Optional add-on for Vestige. Puts memories in a git repository shared across a team: a sparse clone kept out of your project's history, pulled at session start and pushed at the turn boundary, with deletions held back for review because removing a memory removes it for everyone. Requires the vestige plugin.",
+  "author": {
+    "name": "Brenno Ferrari"
+  },
+  "license": "MIT",
+  "keywords": [
+    "memory",
+    "team",
+    "sync"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "commands": [
+    "./commands/approve-memories.md",
+    "./commands/memory-doctor.md"
+  ]
+}
