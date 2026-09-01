@@ -16,6 +16,10 @@ jobs:
         with: { repository: breferrari/vestige, path: vestige-base }
       - uses: actions/setup-node@v4
         with: { node-version: '${{ matrix.node }}' }
+      - name: the core is resolvable before anything is tested
+        env:
+          VESTIGE_CORE: ${{ github.workspace }}/vestige-base/core
+        run: node -e "import('node:url').then(async u => { const { findCore } = await import(u.pathToFileURL('hooks/find-core.mjs').href); const c = findCore(); console.log('findCore ->', c); if (!c) { console.error('core not found; VESTIGE_CORE=' + process.env.VESTIGE_CORE); process.exit(1); } })"
       - name: hook and manifest tests
         env:
           VESTIGE_CORE: ${{ github.workspace }}/vestige-base/core

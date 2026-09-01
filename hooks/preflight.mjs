@@ -24,7 +24,14 @@ import { pathToFileURL } from "node:url";
 try {
 	const { findCore } = await import(pathToFileURL(join(import.meta.dirname, "find-core.mjs")).href);
 	const core = findCore();
-	if (!core) process.exit(0);
+	if (!core) {
+		// Fail open, but SAY SO. This hook's whole job is to make a silent state
+		// visible; exiting quietly because it could not locate the core makes it
+		// indistinguishable from a healthy store, which is the exact confusion it
+		// exists to remove.
+		process.stderr.write("vestige preflight: base plugin core not found — set VESTIGE_CORE or install the base plugin beside this one\n");
+		process.exit(0);
+	}
 	const { activeStores, vestigeHome } = await import(pathToFileURL(join(core, "lib", "stores.ts")).href);
 
 	let payload = {};
@@ -36,8 +43,10 @@ try {
 		catch { return null; }
 	};
 
+	const stores = activeStores(process.cwd());
+	if (!stores.length) process.stderr.write("vestige preflight: no configured stores resolved here\n");
 	const lines = [];
-	for (const { config, path } of activeStores(process.cwd())) {
+	for (const { config, path } of stores) {
 		if (!existsSync(path)) continue;
 		const inRepo = git(path, ["rev-parse", "--is-inside-work-tree"]) === "true";
 		if (!inRepo) continue;

@@ -12,6 +12,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const HOOKS = join(import.meta.dirname, "..", "hooks");
 let home, store, remote;
@@ -39,12 +40,12 @@ beforeEach(() => {
 
 describe("finding the core", () => {
 	test("findCore resolves, or returns null — never throws", async () => {
-		const { findCore } = await import(join(HOOKS, "find-core.mjs"));
+		const { findCore } = await import(pathToFileURL(join(HOOKS, "find-core.mjs")).href);
 		const core = findCore();
 		assert.ok(core === null || typeof core === "string");
 	});
 	test("VESTIGE_CORE is honoured when it points at a real core", async () => {
-		const { findCore } = await import(join(HOOKS, "find-core.mjs"));
+		const { findCore } = await import(pathToFileURL(join(HOOKS, "find-core.mjs")).href);
 		const real = findCore();
 		if (!real) return; // no sibling checkout in this environment
 		process.env.VESTIGE_CORE = real;
