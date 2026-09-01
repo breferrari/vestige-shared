@@ -8,7 +8,7 @@
  */
 import { test, describe, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -18,11 +18,23 @@ const HOOKS = join(import.meta.dirname, "..", "hooks");
 let home, store, remote;
 
 const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
-const runHook = (file, payload = {}, env = {}) =>
-	execFileSync(process.execPath, ["--experimental-strip-types", "--disable-warning=ExperimentalWarning", join(HOOKS, file)], {
+/**
+ * Run a hook and keep BOTH streams.
+ *
+ * These hooks fail open and explain themselves on stderr. Piping stderr into
+ * the void made every failure here an empty string with no cause attached —
+ * the test was hiding exactly the diagnostic the hook exists to print.
+ */
+let lastStderr = "";
+const runHook = (file, payload = {}, env = {}) => {
+	const r = spawnSync(process.execPath, ["--experimental-strip-types", "--disable-warning=ExperimentalWarning", join(HOOKS, file)], {
 		input: JSON.stringify(payload), encoding: "utf8", cwd: store,
-		env: { ...process.env, VESTIGE_HOME: home, ...env }, stdio: ["pipe", "pipe", "pipe"],
+		env: { ...process.env, VESTIGE_HOME: home, ...env },
 	});
+	lastStderr = r.stderr ?? "";
+	return r.stdout ?? "";
+};
+const why = (msg) => `${msg}${lastStderr.trim() ? `\n  hook stderr: ${lastStderr.trim()}` : "\n  hook stderr: (silent)"}`;
 
 beforeEach(() => {
 	home = mkdtempSync(join(tmpdir(), "addon-home-"));
@@ -59,7 +71,7 @@ describe("preflight reports a stuck store", () => {
 		writeFileSync(join(store, "b.md"), "---\nscope: project\n---\n\n# b\n\nbody\n");
 		git(store, "add", "-A"); git(store, "commit", "-qm", "unpushed");
 		const out = runHook("preflight.mjs", { session_id: "s1" });
-		assert.match(out, /never pushed/i, "memories committed and never pushed are invisible otherwise");
+		assert.match(out, /never pushed/i, why("memories committed and never pushed are invisible otherwise"));
 	});
 
 	test("a healthy store says nothing", () => {
@@ -72,14 +84,14 @@ describe("preflight reports a stuck store", () => {
 		assert.doesNotMatch(clean, /unreachable/i, "a reachable remote must never be reported as unreachable");
 		git(store, "remote", "set-url", "origin", join(tmpdir(), "definitely-not-a-repo-xyz"));
 		const broken = runHook("preflight.mjs", { session_id: "s4" });
-		assert.match(broken, /unreachable/i);
+		assert.match(broken, /unreachable/i, why("an unreachable remote must be reported"));
 	});
 
 	test("quarantined memories are surfaced — git cannot see them", () => {
 		mkdirSync(join(home, "memories-quarantine"), { recursive: true });
 		writeFileSync(join(home, "memories-quarantine", "leaky.md"), "x\n");
 		const out = runHook("preflight.mjs", { session_id: "s5" });
-		assert.match(out, /quarantined/i);
+		assert.match(out, /quarantined/i, why("quarantined memories are invisible to git"));
 	});
 
 	test("it repeats nothing within one session", () => {
@@ -87,7 +99,7 @@ describe("preflight reports a stuck store", () => {
 		git(store, "add", "-A"); git(store, "commit", "-qm", "unpushed");
 		const first = runHook("preflight.mjs", { session_id: "dup" });
 		const second = runHook("preflight.mjs", { session_id: "dup" });
-		assert.match(first, /never pushed/i);
+		assert.match(first, /never pushed/i, why("the first report in a session must fire"));
 		assert.equal(second.trim(), "", "a warning repeated every resume is a warning that gets filtered out");
 	});
 
