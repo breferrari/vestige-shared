@@ -15,6 +15,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const HOOKS = join(import.meta.dirname, "..", "hooks");
+const { findCore: coreFor } = await import(pathToFileURL(join(HOOKS, "find-core.mjs")).href);
 let home, store, remote;
 
 const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
@@ -34,7 +35,12 @@ const runHook = (file, payload = {}, env = {}) => {
 	lastStderr = r.stderr ?? "";
 	return r.stdout ?? "";
 };
-const why = (msg) => `${msg}${lastStderr.trim() ? `\n  hook stderr: ${lastStderr.trim()}` : "\n  hook stderr: (silent)"}`;
+const why = (msg) => [
+	msg,
+	`  hook stderr: ${lastStderr.trim() || "(silent)"}`,
+	`  VESTIGE_CORE: ${process.env.VESTIGE_CORE ?? "(unset)"}`,
+	`  findCore():   ${(() => { try { return coreFor() ?? "null"; } catch (e) { return `threw ${e.message}`; } })()}`,
+].join("\n");
 
 beforeEach(() => {
 	home = mkdtempSync(join(tmpdir(), "addon-home-"));
