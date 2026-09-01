@@ -1,15 +1,27 @@
 ---
-description: Review memories deleted locally and decide whether to remove them for the whole team.
+description: Review pending memory changes — additions awaiting review and deletions held back — and decide what the whole team gets.
 ---
 
-Deletions are held back from the shared store by default. Removing a memory removes it for **everyone**, including whoever wrote it and is not here to object, so it needs a decision rather than a side effect.
+Two different things end up here, and they are held for opposite reasons.
+
+**Deletions are always held back.** Removing a memory removes it for *everyone*, including whoever wrote it and is not here to object, so it needs a decision rather than a side effect.
+
+**Additions are held back only under `VESTIGE_SYNC=review`.** That mode exists for a team that wants a lead to see incoming lessons before they become everybody else's context. Under the default `auto`, additions have already gone out and only deletions will be waiting.
 
 Do this:
 
-1. Run the doctor to see the shared store's state, then list what is pending: from the store directory, `git status --porcelain` — lines beginning `D` are memories deleted locally but still present for the team.
-2. For each one, read what is being removed (`git show HEAD:<path>`) and say why it should go: superseded by a better memory, no longer true, or never qualified. "Tidying up" is not a reason.
-3. Present the list with your reasoning and **ask the user to confirm**. Never approve on their behalf.
-4. On approval, publish the removals by running the sync with `VESTIGE_SYNC=full` set.
-5. To keep one instead, restore it: `git checkout -- <path>`.
+1. **List what is pending.** From the store directory, `git status --porcelain`: lines beginning `D` are deletions held back; `??` and `M` are additions and edits awaiting review. If nothing is pending, say so plainly and stop — that is the normal state.
+2. **Read each one before judging it.** For a deletion, `git show HEAD:<path>` — you are deciding on content you have not seen otherwise. For an addition, read the file: does it state a claim, does it carry reach that matches what it actually applies to, and does it duplicate something already in the store? A near-twin should supersede rather than land beside its sibling.
+3. **Say why.** A deletion needs a reason: superseded, no longer true, or never qualified. "Tidying up" is not a reason. An addition needs the opposite check — would this help someone on a different project?
+4. **Present the list with your reasoning and ask the user to confirm.** Never approve on their behalf.
+5. **On approval, publish.** From the store directory:
+   ```
+   git add -A
+   git commit -m "review: <reason>"
+   git pull --rebase --autostash
+   git push
+   ```
+   Use `review: audit cleanup` as the subject when this is a housekeeping pass rather than a specific judgement — a readable history is the point of naming it.
+6. **To keep something instead**, restore it: `git checkout -- <path>` for a deletion, or delete the file for an addition you are refusing.
 
-If nothing is pending, say so plainly — that is the normal state.
+The content gate runs before anything is staged, so a memory carrying a credential or a private host is already quarantined and will not appear in this list. That is deliberate: this command is for judgement about *reach and value*, never a last line of defence for secrets.
