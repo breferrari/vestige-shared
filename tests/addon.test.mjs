@@ -65,10 +65,19 @@ describe("finding the core", () => {
 	test("VESTIGE_CORE is honoured when it points at a real core", async () => {
 		const { findCore } = await import(pathToFileURL(join(HOOKS, "find-core.mjs")).href);
 		const real = findCore();
-		if (!real) return; // no sibling checkout in this environment
-		process.env.VESTIGE_CORE = real;
-		assert.equal(findCore(), real);
-		delete process.env.VESTIGE_CORE;
+		if (!real) return; // no core resolvable in this environment
+		// RESTORE, never delete. Deleting it left every later test in this file
+		// without a core: locally that was invisible because a sibling checkout
+		// exists, and in CI - where the variable is the only route - it silently
+		// failed everything downstream and looked like a product defect.
+		const original = process.env.VESTIGE_CORE;
+		try {
+			process.env.VESTIGE_CORE = real;
+			assert.equal(findCore(), real);
+		} finally {
+			if (original === undefined) delete process.env.VESTIGE_CORE;
+			else process.env.VESTIGE_CORE = original;
+		}
 	});
 });
 
