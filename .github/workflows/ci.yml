@@ -25,5 +25,8 @@ jobs:
           VESTIGE_CORE: ${{ github.workspace }}/vestige-base/core
         run: node --experimental-strip-types --disable-warning=ExperimentalWarning --test "tests/**/*.test.mjs"
       - name: every hook parses
+        # Windows runners default to PowerShell, which cannot parse a POSIX for
+        # loop — the step failed on syntax rather than on any hook being broken.
+        shell: bash
         run: |
           for f in hooks/*.mjs; do node --check "$f"; done
