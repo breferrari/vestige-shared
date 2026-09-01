@@ -18,7 +18,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 try {
@@ -51,7 +51,10 @@ try {
 		// later sync fails, and the failures are swallowed by design.
 		const gitDir = git(path, ["rev-parse", "--git-dir"]);
 		if (gitDir) {
-			const abs = gitDir.startsWith("/") ? gitDir : join(path, gitDir);
+			// isAbsolute, not startsWith("/"): on Windows git reports an absolute
+			// git-dir as "C:/repo/.git", where the slash test is false and the
+			// path is joined onto itself.
+			const abs = isAbsolute(gitDir) ? gitDir : join(path, gitDir);
 			if (existsSync(join(abs, "rebase-merge")) || existsSync(join(abs, "rebase-apply"))) {
 				lines.push(`${config.name}: a rebase is in progress — sync cannot proceed until it is finished or aborted`);
 			}
