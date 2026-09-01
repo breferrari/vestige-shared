@@ -1,0 +1,25 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: ['22', '24']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      # The add-on's hooks import the base plugin's core. Checking it out beside
+      # this one is what the sibling-directory default expects.
+      - uses: actions/checkout@v4
+        with: { repository: breferrari/vestige, path: vestige-base }
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ matrix.node }}' }
+      - name: hook and manifest tests
+        env:
+          VESTIGE_CORE: ${{ github.workspace }}/vestige-base/core
+        run: node --experimental-strip-types --disable-warning=ExperimentalWarning --test "tests/**/*.test.mjs"
+      - name: every hook parses
+        run: |
+          for f in hooks/*.mjs; do node --check "$f"; done
