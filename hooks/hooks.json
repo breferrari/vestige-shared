@@ -13,6 +13,11 @@
             "type": "command",
             "command": "node --experimental-strip-types --disable-warning=ExperimentalWarning \"${CLAUDE_PLUGIN_ROOT}/hooks/announce.mjs\"",
             "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "node --experimental-strip-types --disable-warning=ExperimentalWarning \"${CLAUDE_PLUGIN_ROOT}/hooks/preflight.mjs\"",
+            "timeout": 20
           }
         ]
       }
